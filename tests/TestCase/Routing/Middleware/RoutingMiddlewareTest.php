@@ -25,10 +25,10 @@ use Cake\Routing\RouteBuilder;
 use Cake\Routing\RouteCollection;
 use Cake\Routing\Router;
 use Cake\TestSuite\TestCase;
+use Laminas\Diactoros\Response;
 use TestApp\Application;
 use TestApp\Http\TestRequestHandler;
 use TestApp\Middleware\DumbMiddleware;
-use Zend\Diactoros\Response;
 
 /**
  * Test for RoutingMiddleware
@@ -533,7 +533,7 @@ class RoutingMiddlewareTest extends TestCase
     /**
      * Create a stub application for testing.
      *
-     * @param callable $handleCallack Callback for "handle" method.
+     * @param callable $handleCallback Callback for "handle" method.
      * @return \Cake\Core\HttpApplicationInterface
      */
     protected function app($handleCallback = null)
