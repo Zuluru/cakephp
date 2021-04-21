@@ -17,10 +17,10 @@ namespace Cake\Routing\Middleware;
 use Cake\Core\Plugin;
 use Cake\Filesystem\File;
 use Cake\Utility\Inflector;
+use Laminas\Diactoros\Response;
+use Laminas\Diactoros\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Zend\Diactoros\Response;
-use Zend\Diactoros\Stream;
 
 /**
  * Handles serving plugin assets in development mode.
@@ -174,9 +174,9 @@ class AssetMiddleware
         return $response->withBody($stream)
             ->withHeader('Content-Type', $contentType)
             ->withHeader('Cache-Control', 'public,max-age=' . $maxAge)
-            ->withHeader('Date', gmdate('D, j M Y G:i:s \G\M\T', time()))
-            ->withHeader('Last-Modified', gmdate('D, j M Y G:i:s \G\M\T', $modified))
-            ->withHeader('Expires', gmdate('D, j M Y G:i:s \G\M\T', $expire));
+            ->withHeader('Date', gmdate('D, d M Y H:i:s \G\M\T', time()))
+            ->withHeader('Last-Modified', gmdate('D, d M Y H:i:s \G\M\T', $modified))
+            ->withHeader('Expires', gmdate('D, d M Y H:i:s \G\M\T', $expire));
     }
 
     /**

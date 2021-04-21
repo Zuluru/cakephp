@@ -29,6 +29,7 @@ use Cake\Database\Schema\Collection as SchemaCollection;
 use Cake\Datasource\ConnectionInterface;
 use Cake\Log\Log;
 use Exception;
+use Throwable;
 
 /**
  * Represents a connection with a database server.
@@ -106,7 +107,15 @@ class Connection implements ConnectionInterface
     /**
      * Constructor.
      *
-     * @param array $config configuration for connecting to database
+     * ### Available options:
+     * - `driver` Sort name or FCQN for driver.
+     * - `log` Boolean indicating whether to use query logging.
+     * - `name` Connection name.
+     * - `cacheMetaData` Boolean indicating whether metadata (datasource schemas) should be cached.
+     *    If set to a string it will be used as the name of cache config to use.
+     * - `cacheKeyPrefix` Custom prefix to use when generation cache keys. Defaults to connection name.
+     *
+     * @param array $config Configuration array.
      */
     public function __construct($config)
     {
@@ -575,13 +584,8 @@ class Connection implements ConnectionInterface
     /**
      * Enables/disables the usage of savepoints, enables only if driver the allows it.
      *
-     * If you are trying to enable this feature, make sure you check the return value of this
-     * function to verify it was enabled successfully.
-     *
-     * ### Example:
-     *
-     * `$connection->enableSavePoints(true)` Returns true if drivers supports save points, false otherwise
-     * `$connection->enableSavePoints(false)` Disables usage of savepoints and returns false
+     * If you are trying to enable this feature, make sure you check
+     * `isSavePointsEnabled()` to verify that savepoints were enabled successfully.
      *
      * @param bool $enable Whether or not save points should be used.
      * @return $this
@@ -735,6 +739,9 @@ class Connection implements ConnectionInterface
 
         try {
             $result = $transaction($this);
+        } catch (Throwable $e) {
+            $this->rollback(false);
+            throw $e;
         } catch (Exception $e) {
             $this->rollback(false);
             throw $e;

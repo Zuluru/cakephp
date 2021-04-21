@@ -25,6 +25,12 @@ use Cake\TestSuite\TestCase;
  */
 class NumberTest extends TestCase
 {
+    /**
+     * Backup the locale property
+     *
+     * @var string
+     */
+    protected $locale;
 
     /**
      * setUp method
@@ -48,7 +54,8 @@ class NumberTest extends TestCase
         parent::tearDown();
         unset($this->Number);
         I18n::setLocale($this->locale);
-        Number::defaultCurrency(false);
+        Number::setDefaultCurrency();
+        Number::setDefaultCurrencyFormat();
     }
 
     /**
@@ -200,10 +207,6 @@ class NumberTest extends TestCase
         $expected = 'US$100,100,100.00';
         $this->assertEquals($expected, $result);
 
-        $result = $this->Number->currency($value, 'INR', ['locale' => 'en_IN']);
-        $expected = '₹ 10,01,00,100.00';
-        $this->assertEquals($expected, $result);
-
         $options = ['locale' => 'en_IN', 'pattern' => "Rs'.' #,##,###"];
         $result = $this->Number->currency($value, 'INR', $options);
         $expected = 'Rs. 10,01,00,100';
@@ -310,19 +313,69 @@ class NumberTest extends TestCase
     /**
      * Test default currency
      *
+     * @group deprecated
      * @return void
      */
     public function testDefaultCurrency()
     {
-        $result = $this->Number->defaultCurrency();
-        $this->assertEquals('USD', $result);
+        $this->deprecated(function () {
+            $this->assertEquals('USD', $this->Number->defaultCurrency());
 
-        $this->Number->defaultCurrency(false);
+            $this->Number->defaultCurrency(false);
+            I18n::setLocale('es_ES');
+            $this->assertEquals('EUR', $this->Number->defaultCurrency());
+
+            $this->Number->defaultCurrency('JPY');
+            $this->assertEquals('JPY', $this->Number->defaultCurrency());
+        });
+    }
+
+    /**
+     * Test get default currency
+     *
+     * @return void
+     */
+    public function testGetDefaultCurrency()
+    {
+        $this->assertEquals('USD', $this->Number->getDefaultCurrency());
+    }
+
+    /**
+     * Test set default currency
+     *
+     * @return void
+     */
+    public function testSetDefaultCurrency()
+    {
+        $this->Number->setDefaultCurrency();
         I18n::setLocale('es_ES');
-        $this->assertEquals('EUR', $this->Number->defaultCurrency());
+        $this->assertEquals('EUR', $this->Number->getDefaultCurrency());
 
-        $this->Number->defaultCurrency('JPY');
-        $this->assertEquals('JPY', $this->Number->defaultCurrency());
+        $this->Number->setDefaultCurrency('JPY');
+        $this->assertEquals('JPY', $this->Number->getDefaultCurrency());
+    }
+
+    /**
+     * Test get default currency format
+     *
+     * @return void
+     */
+    public function testGetDefaultCurrencyFormat()
+    {
+        $this->assertEquals('currency', $this->Number->getDefaultCurrencyFormat());
+    }
+
+    /**
+     * Test set default currency format
+     *
+     * @return void
+     */
+    public function testSetDefaultCurrencyFormat()
+    {
+        $this->Number->setDefaultCurrencyFormat(Number::FORMAT_CURRENCY_ACCOUNTING);
+        $this->assertEquals('currency_accounting', $this->Number->getDefaultCurrencyFormat());
+
+        $this->assertEquals('($123.45)', $this->Number->currency(-123.45));
     }
 
     /**
@@ -563,15 +616,15 @@ class NumberTest extends TestCase
      */
     public function testConfig()
     {
-        $result = $this->Number->currency(15000, 'INR', ['locale' => 'en_IN']);
-        $this->assertEquals('₹ 15,000.00', $result);
+        $result = $this->Number->currency(150000, 'USD', ['locale' => 'en_US']);
+        $this->assertSame('$150,000.00', $result);
 
-        Number::config('en_IN', \NumberFormatter::CURRENCY, [
+        Number::config('en_US', \NumberFormatter::CURRENCY, [
             'pattern' => '¤ #,##,##0',
         ]);
 
-        $result = $this->Number->currency(15000, 'INR', ['locale' => 'en_IN']);
-        $this->assertEquals('₹ 15,000', $result);
+        $result = $this->Number->currency(150000, 'USD', ['locale' => 'en_US']);
+        $this->assertSame('$ 1,50,000', $result);
     }
 
     /**

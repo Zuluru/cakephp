@@ -675,7 +675,7 @@ class Query implements ExpressionInterface, IteratorAggregate
      *
      * See `join()` for further details on conditions and types.
      *
-     * @param string|string[] $table The table to join with
+     * @param string|string[]|\Cake\Database\ExpressionInterface[] $table The table to join with
      * @param string|array|\Cake\Database\ExpressionInterface $conditions The conditions
      * to use for joining.
      * @param array $types a list of types associated to the conditions used for converting
@@ -695,7 +695,7 @@ class Query implements ExpressionInterface, IteratorAggregate
      * The arguments of this method are identical to the `leftJoin()` shorthand, please refer
      * to that methods description for further details.
      *
-     * @param string|array $table The table to join with
+     * @param string|string[]|\Cake\Database\ExpressionInterface[] $table The table to join with
      * @param string|array|\Cake\Database\ExpressionInterface $conditions The conditions
      * to use for joining.
      * @param array $types a list of types associated to the conditions used for converting
@@ -715,7 +715,7 @@ class Query implements ExpressionInterface, IteratorAggregate
      * The arguments of this method are identical to the `leftJoin()` shorthand, please refer
      * to that methods description for further details.
      *
-     * @param string|string[] $table The table to join with
+     * @param string|string[]|\Cake\Database\ExpressionInterface[] $table The table to join with
      * @param string|array|\Cake\Database\ExpressionInterface $conditions The conditions
      * to use for joining.
      * @param array $types a list of types associated to the conditions used for converting
@@ -730,7 +730,7 @@ class Query implements ExpressionInterface, IteratorAggregate
     /**
      * Returns an array that can be passed to the join method describing a single join clause
      *
-     * @param string|string[] $table The table to join with
+     * @param string|string[]|\Cake\Database\ExpressionInterface[] $table The table to join with
      * @param string|array|\Cake\Database\ExpressionInterface $conditions The conditions
      * to use for joining.
      * @param string $type the join type to use
@@ -1140,7 +1140,9 @@ class Query implements ExpressionInterface, IteratorAggregate
      * `ORDER BY title DESC, author_id ASC`
      *
      * ```
-     * $query->order(['title' => 'DESC NULLS FIRST'])->order('author_id');
+     * $query
+     *     ->order(['title' => $query->newExpr('DESC NULLS FIRST')])
+     *     ->order('author_id');
      * ```
      *
      * Will generate:
@@ -1202,7 +1204,7 @@ class Query implements ExpressionInterface, IteratorAggregate
      * Order fields are not suitable for use with user supplied data as they are
      * not sanitized by the query builder.
      *
-     * @param string|\Cake\Database\Expression\QueryExpression $field The field to order on.
+     * @param string|\Cake\Database\Expression\QueryExpression|callable $field The field to order on.
      * @param bool $overwrite Whether or not to reset the order clauses.
      * @return $this
      */
@@ -1218,6 +1220,11 @@ class Query implements ExpressionInterface, IteratorAggregate
         if (!$this->_parts['order']) {
             $this->_parts['order'] = new OrderByExpression();
         }
+
+        if ($this->_parts['order']->isCallable($field)) {
+            $field = $field($this->newExpr(), $this);
+        }
+
         $this->_parts['order']->add(new OrderClauseExpression($field, 'ASC'));
 
         return $this;
@@ -1232,7 +1239,7 @@ class Query implements ExpressionInterface, IteratorAggregate
      * Order fields are not suitable for use with user supplied data as they are
      * not sanitized by the query builder.
      *
-     * @param string|\Cake\Database\Expression\QueryExpression $field The field to order on.
+     * @param string|\Cake\Database\Expression\QueryExpression|callable $field The field to order on.
      * @param bool $overwrite Whether or not to reset the order clauses.
      * @return $this
      */
@@ -1248,6 +1255,11 @@ class Query implements ExpressionInterface, IteratorAggregate
         if (!$this->_parts['order']) {
             $this->_parts['order'] = new OrderByExpression();
         }
+
+        if ($this->_parts['order']->isCallable($field)) {
+            $field = $field($this->newExpr(), $this);
+        }
+
         $this->_parts['order']->add(new OrderClauseExpression($field, 'DESC'));
 
         return $this;
@@ -1750,7 +1762,7 @@ class Query implements ExpressionInterface, IteratorAggregate
      *
      * Epliog content is raw SQL and not suitable for use with user supplied data.
      *
-     * @param string|\Cake\Database\Expression\QueryExpression|null $expression The expression to be appended
+     * @param string|\Cake\Database\ExpressionInterface|null $expression The expression to be appended
      * @return $this
      */
     public function epilog($expression = null)

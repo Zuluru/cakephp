@@ -90,7 +90,6 @@ class CountableIterator extends \IteratorIterator implements \Countable
  */
 class CollectionTest extends TestCase
 {
-
     /**
      * Tests that it is possible to convert an array into a collection
      *
@@ -684,7 +683,7 @@ class CollectionTest extends TestCase
     {
         $collection = new Collection($items);
         $callback = function ($e) {
-            return $e['a']['b']['c'] * - 1;
+            return $e['a']['b']['c'] * -1;
         };
         $this->assertEquals(['a' => ['b' => ['c' => 4]]], $collection->max($callback));
     }
@@ -699,7 +698,7 @@ class CollectionTest extends TestCase
     {
         $collection = new Collection($items);
         $this->assertEquals(['a' => ['b' => ['c' => 4]]], $collection->max(function ($e) {
-            return $e['a']['b']['c'] * - 1;
+            return $e['a']['b']['c'] * -1;
         }));
     }
 
@@ -979,6 +978,21 @@ class CollectionTest extends TestCase
         $this->assertContains(2, $result);
         $this->assertContains(3, $result);
         $this->assertContains(4, $result);
+    }
+
+    /**
+     * Tests shuffle with duplicate keys.
+     *
+     * @return void
+     */
+    public function testShuffleDuplicateKeys()
+    {
+        $collection = (new Collection(['a' => 1]))->append(['a' => 2])->shuffle();
+        $result = $collection->toArray();
+        $this->assertCount(2, $result);
+        $this->assertEquals([0, 1], array_keys($result));
+        $this->assertContains(1, $result);
+        $this->assertContains(2, $result);
     }
 
     /**
@@ -1330,6 +1344,25 @@ class CollectionTest extends TestCase
         $buffered = (new Collection($items))->buffered();
         $this->assertEquals(['a' => 4, 'b' => 5, 'c' => 6], $buffered->toArray());
         $this->assertEquals(['a' => 4, 'b' => 5, 'c' => 6], $buffered->toArray());
+    }
+
+    public function testBufferedIterator()
+    {
+        $data = [
+            ['myField' => '1'],
+            ['myField' => '2'],
+            ['myField' => '3'],
+        ];
+        $buffered = (new \Cake\Collection\Collection($data))->buffered();
+        // Check going forwards
+        $this->assertNotEmpty($buffered->firstMatch(['myField' => '1']));
+        $this->assertNotEmpty($buffered->firstMatch(['myField' => '2']));
+        $this->assertNotEmpty($buffered->firstMatch(['myField' => '3']));
+
+        // And backwards.
+        $this->assertNotEmpty($buffered->firstMatch(['myField' => '3']));
+        $this->assertNotEmpty($buffered->firstMatch(['myField' => '2']));
+        $this->assertNotEmpty($buffered->firstMatch(['myField' => '1']));
     }
 
     /**

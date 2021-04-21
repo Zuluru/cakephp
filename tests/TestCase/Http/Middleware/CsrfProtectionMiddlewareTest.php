@@ -19,6 +19,8 @@ use Cake\Http\Response;
 use Cake\Http\ServerRequest;
 use Cake\I18n\Time;
 use Cake\TestSuite\TestCase;
+use Laminas\Diactoros\Response as DiactorosResponse;
+use Laminas\Diactoros\Response\RedirectResponse;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -26,7 +28,6 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class CsrfProtectionMiddlewareTest extends TestCase
 {
-
     /**
      * Data provider for HTTP method tests.
      *
@@ -352,5 +353,36 @@ class CsrfProtectionMiddlewareTest extends TestCase
         });
         $response = $middleware($request, $response, $this->_getNextClosure());
         $this->assertInstanceOf(Response::class, $response);
+    }
+
+    /**
+     * Test the situation where the app is upgraded from 3.9.2 or earlier to 3.9.3 or later,
+     * without deleting route cache.
+     *
+     * @return void
+     */
+    public function testMissingSamesite()
+    {
+        $request = new ServerRequest([
+            'environment' => ['REQUEST_METHOD' => 'GET'],
+            'webroot' => '/dir/',
+        ]);
+        $response = new Response();
+
+        $closure = function ($request, $response) {
+        };
+
+        $middleware = new CsrfProtectionMiddleware();
+
+        // simulate 3.9.2 or earlier by deleting "samesite" config
+        $reflection = new \ReflectionClass($middleware);
+        $property = $reflection->getProperty('_config');
+        $property->setAccessible(true);
+        $defaultConfig = $property->getValue($middleware);
+        unset($defaultConfig['samesite']);
+        $property->setValue($middleware, $defaultConfig);
+
+        $middleware($request, $response, $closure);
+        $this->assertTrue(true);
     }
 }

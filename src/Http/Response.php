@@ -27,10 +27,10 @@ use DateTime;
 use DateTimeInterface;
 use DateTimeZone;
 use InvalidArgumentException;
+use Laminas\Diactoros\MessageTrait;
+use Laminas\Diactoros\Stream;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
-use Zend\Diactoros\MessageTrait;
-use Zend\Diactoros\Stream;
 
 /**
  * Responses contain the response text, status and headers of a HTTP response.
@@ -40,7 +40,6 @@ use Zend\Diactoros\Stream;
  * returns a status code integer. Keep in mind that these consants might
  * include status codes that are now allowed which will throw an
  * `\InvalidArgumentException`.
- *
  */
 class Response implements ResponseInterface
 {
@@ -511,7 +510,7 @@ class Response implements ResponseInterface
             $this->_file = null;
             $this->_fileRange = [];
         } else {
-            $this->_sendContent($this->body());
+            $this->_sendContent($this->getBody());
         }
 
         if (function_exists('fastcgi_finish_request')) {
@@ -1065,7 +1064,6 @@ class Response implements ResponseInterface
      *        ]); // throws an exception due to invalid codes
      *
      *        For more on HTTP status codes see: http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.1
-     *
      * @return mixed Associative array of the HTTP codes as keys, and the message
      *    strings as values, or null of the given $code does not exist.
      * @throws \InvalidArgumentException If an attempt is made to add an invalid status code
@@ -1372,7 +1370,7 @@ class Response implements ResponseInterface
             }
         }
 
-        $this->_setHeader('Date', gmdate('D, j M Y G:i:s ', time()) . 'GMT');
+        $this->_setHeader('Date', gmdate('D, d M Y H:i:s ', time()) . 'GMT');
 
         $this->modified($since);
         $this->expires($time);
@@ -1397,7 +1395,7 @@ class Response implements ResponseInterface
             }
         }
 
-        return $this->withHeader('Date', gmdate('D, j M Y G:i:s ', time()) . 'GMT')
+        return $this->withHeader('Date', gmdate('D, d M Y H:i:s ', time()) . 'GMT')
             ->withModified($since)
             ->withExpires($time)
             ->withSharable(true)
@@ -2273,6 +2271,7 @@ class Response implements ResponseInterface
                 'domain' => '',
                 'secure' => false,
                 'httpOnly' => false,
+                'samesite' => null,
             ];
             $expires = $data['expire'] ? new DateTime('@' . $data['expire']) : null;
             $cookie = new Cookie(
@@ -2282,7 +2281,8 @@ class Response implements ResponseInterface
                 $data['path'],
                 $data['domain'],
                 $data['secure'],
-                $data['httpOnly']
+                $data['httpOnly'],
+                $data['samesite']
             );
         }
 
@@ -2409,6 +2409,7 @@ class Response implements ResponseInterface
             'secure' => $cookie->isSecure(),
             'httpOnly' => $cookie->isHttpOnly(),
             'expire' => $cookie->getExpiresTimestamp(),
+            'samesite' => $cookie->getSameSite(),
         ];
     }
 

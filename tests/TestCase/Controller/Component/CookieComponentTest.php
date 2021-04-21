@@ -27,7 +27,6 @@ use Cake\Utility\Security;
  */
 class CookieComponentTest extends TestCase
 {
-
     /**
      * @var \Cake\Controller\Component\CookieComponent
      */
@@ -323,7 +322,9 @@ class CookieComponentTest extends TestCase
             'path' => '/',
             'domain' => '',
             'secure' => false,
-            'httpOnly' => false];
+            'httpOnly' => false,
+            'samesite' => null,
+        ];
         $result = $this->Controller->response->getCookie('Testing');
 
         $this->assertEquals($future->format('U'), $result['expire'], '', 3);
@@ -351,7 +352,9 @@ class CookieComponentTest extends TestCase
             'path' => '/',
             'domain' => '',
             'secure' => false,
-            'httpOnly' => true];
+            'httpOnly' => true,
+            'samesite' => null,
+        ];
         $result = $this->Controller->response->getCookie('Testing');
         $this->assertEquals($expected, $result);
     }
@@ -376,6 +379,7 @@ class CookieComponentTest extends TestCase
             'domain' => '',
             'secure' => false,
             'httpOnly' => false,
+            'samesite' => null,
         ];
         $result = $this->Controller->response->getCookie('Open');
         unset($result['expire']);
@@ -443,7 +447,9 @@ class CookieComponentTest extends TestCase
             'path' => '/',
             'domain' => '',
             'secure' => false,
-            'httpOnly' => true];
+            'httpOnly' => true,
+            'samesite' => null,
+        ];
         $result = $this->Controller->response->getCookie('Testing');
         $this->assertEquals($expected, $result);
     }
@@ -463,6 +469,7 @@ class CookieComponentTest extends TestCase
             'domain' => '',
             'secure' => false,
             'httpOnly' => false,
+            'samesite' => null,
         ];
         $result = $this->Controller->response->getCookie('Testing');
 
@@ -488,6 +495,7 @@ class CookieComponentTest extends TestCase
             'domain' => '',
             'secure' => false,
             'httpOnly' => false,
+            'samesite' => null,
         ];
         $result = $this->Controller->response->getCookie('User');
         unset($result['expire']);
@@ -503,6 +511,7 @@ class CookieComponentTest extends TestCase
             'domain' => '',
             'secure' => false,
             'httpOnly' => false,
+            'samesite' => null,
         ];
         $result = $this->Controller->response->getCookie('User');
         unset($result['expire']);

@@ -29,7 +29,6 @@ class Translator extends BaseTranslator
     /**
      * Translates the message formatting any placeholders
      *
-     *
      * @param string $key The message key.
      * @param array $tokensValues Token values to interpolate into the
      *   message.
@@ -76,7 +75,7 @@ class Translator extends BaseTranslator
 
         // Resolve plural form.
         if (is_array($message)) {
-            $count = isset($tokensValues['_count']) ? $tokensValues['_count'] : 0;
+            $count = isset($tokensValues['_count']) ? (int)$tokensValues['_count'] : 0;
             $form = PluralRules::calculate($this->locale, $count);
             $message = isset($message[$form]) ? $message[$form] : (string)end($message);
         }
@@ -84,6 +83,8 @@ class Translator extends BaseTranslator
         if (strlen($message) === 0) {
             $message = $key;
         }
+
+        unset($tokensValues['_count'], $tokensValues['_singular']);
 
         return $this->formatter->format($this->locale, $message, $tokensValues);
     }
@@ -94,7 +95,7 @@ class Translator extends BaseTranslator
      * @param string $key The message key being handled.
      * @param string|array $message The message content.
      * @param array $vars The variables containing the `_context` key.
-     * @return string
+     * @return string|array
      */
     protected function resolveContext($key, $message, array $vars)
     {

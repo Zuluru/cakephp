@@ -13,7 +13,6 @@
  * @license       https://opensource.org/licenses/mit-license.php MIT License
  *
  * Parts of this file are derived from Zend-Diactoros
- *
  * @copyright Copyright (c) 2015-2016 Zend Technologies USA Inc. (https://www.zend.com/)
  * @license   https://github.com/zendframework/zend-diactoros/blob/master/LICENSE.md New BSD License
  */
@@ -21,9 +20,9 @@ namespace Cake\Http;
 
 use Cake\Core\Configure;
 use Cake\Log\Log;
+use Laminas\Diactoros\RelativeStream;
+use Laminas\Diactoros\Response\EmitterInterface;
 use Psr\Http\Message\ResponseInterface;
-use Zend\Diactoros\RelativeStream;
-use Zend\Diactoros\Response\EmitterInterface;
 
 /**
  * Emits a Response to the PHP Server API.
@@ -203,14 +202,15 @@ class ResponseEmitter implements EmitterInterface
     {
         foreach ($cookies as $cookie) {
             if (is_array($cookie)) {
-                setcookie(
+                $options = $cookie;
+                $options['httponly'] = $options['httpOnly'];
+                $options['expires'] = $options['expire'];
+                unset($options['name'], $options['value'], $options['httpOnly'], $options['expire']);
+
+                $this->setcookie(
                     $cookie['name'],
                     $cookie['value'],
-                    $cookie['expire'],
-                    $cookie['path'],
-                    $cookie['domain'],
-                    $cookie['secure'],
-                    $cookie['httpOnly']
+                    $options
                 );
                 continue;
             }
@@ -223,40 +223,70 @@ class ResponseEmitter implements EmitterInterface
             }
 
             list($name, $value) = explode('=', array_shift($parts), 2);
+            $name = urldecode($name);
+            $value = urldecode($value);
             $data = [
-                'name' => urldecode($name),
-                'value' => urldecode($value),
                 'expires' => 0,
                 'path' => '',
                 'domain' => '',
                 'secure' => false,
                 'httponly' => false,
+                'samesite' => null,
             ];
 
             foreach ($parts as $part) {
                 if (strpos($part, '=') !== false) {
-                    list($key, $value) = explode('=', $part);
+                    list($key, $val) = explode('=', $part);
                 } else {
                     $key = $part;
-                    $value = true;
+                    $val = true;
                 }
 
                 $key = strtolower($key);
-                $data[$key] = $value;
+                $data[$key] = $val;
             }
-            if (!empty($data['expires'])) {
+            if (is_string($data['expires'])) {
                 $data['expires'] = strtotime($data['expires']);
             }
-            setcookie(
-                $data['name'],
-                $data['value'],
-                $data['expires'],
-                $data['path'],
-                $data['domain'],
-                $data['secure'],
-                $data['httponly']
-            );
+            unset($data['']);
+
+            $this->setcookie($name, $value, $data);
         }
+    }
+
+    /**
+     * Set cookies uses setcookie()
+     *
+     * @param string $name Cookie name.
+     * @param string $value Cookie value.
+     * @param array $options Cookie options.
+     * @return void
+     */
+    protected function setcookie($name, $value, array $options)
+    {
+        if (PHP_VERSION_ID >= 70300) {
+            setcookie(
+                $name,
+                $value,
+                $options
+            );
+
+            return;
+        }
+
+        if (!empty($options['samesite'])) {
+            $options['path'] .= '; SameSite=' . $options['samesite'];
+        }
+
+        setcookie(
+            $name,
+            $value,
+            $options['expires'],
+            $options['path'],
+            $options['domain'],
+            $options['secure'],
+            $options['httponly']
+        );
     }
 
     /**

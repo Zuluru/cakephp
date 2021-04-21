@@ -25,7 +25,7 @@ use Cake\Http\Response;
 use Cake\Http\ServerRequest;
 use Cake\I18n\FrozenTime;
 use Cake\TestSuite\TestCase;
-use Zend\Diactoros\Stream;
+use Laminas\Diactoros\Stream;
 
 /**
  * ResponseTest
@@ -722,7 +722,7 @@ class ResponseTest extends TestCase
             $time = new \DateTime('+1 day', new \DateTimeZone('UTC'));
             $response->expires('+1 day');
             $expected = [
-                'Date' => gmdate('D, j M Y G:i:s ', $since) . 'GMT',
+                'Date' => gmdate('D, d M Y H:i:s ', $since) . 'GMT',
                 'Last-Modified' => gmdate('D, j M Y H:i:s ', $since) . 'GMT',
                 'Expires' => $time->format('D, j M Y H:i:s') . ' GMT',
                 'Cache-Control' => 'public, max-age=' . ($time->format('U') - time()),
@@ -735,7 +735,7 @@ class ResponseTest extends TestCase
             $since = time();
             $time = '+5 day';
             $expected = [
-                'Date' => gmdate('D, j M Y G:i:s ', $since) . 'GMT',
+                'Date' => gmdate('D, d M Y H:i:s ', $since) . 'GMT',
                 'Last-Modified' => gmdate('D, j M Y H:i:s ', $since) . 'GMT',
                 'Expires' => gmdate('D, j M Y H:i:s', strtotime($time)) . ' GMT',
                 'Cache-Control' => 'public, max-age=' . (strtotime($time) - time()),
@@ -748,7 +748,7 @@ class ResponseTest extends TestCase
             $since = time();
             $time = time();
             $expected = [
-                'Date' => gmdate('D, j M Y G:i:s ', $since) . 'GMT',
+                'Date' => gmdate('D, d M Y H:i:s ', $since) . 'GMT',
                 'Last-Modified' => gmdate('D, j M Y H:i:s ', $since) . 'GMT',
                 'Expires' => gmdate('D, j M Y H:i:s', $time) . ' GMT',
                 'Cache-Control' => 'public, max-age=0',
@@ -773,7 +773,7 @@ class ResponseTest extends TestCase
         $this->assertFalse($response->hasHeader('Date'));
         $this->assertFalse($response->hasHeader('Last-Modified'));
 
-        $this->assertEquals(gmdate('D, j M Y G:i:s ', $since) . 'GMT', $new->getHeaderLine('Date'));
+        $this->assertEquals(gmdate('D, d M Y H:i:s ', $since) . 'GMT', $new->getHeaderLine('Date'));
         $this->assertEquals(gmdate('D, j M Y H:i:s ', $since) . 'GMT', $new->getHeaderLine('Last-Modified'));
         $this->assertEquals(gmdate('D, j M Y H:i:s', $time) . ' GMT', $new->getHeaderLine('Expires'));
         $this->assertEquals('public, max-age=0', $new->getHeaderLine('Cache-Control'));
@@ -1586,6 +1586,7 @@ class ResponseTest extends TestCase
                 'domain' => '',
                 'secure' => false,
                 'httpOnly' => false,
+                'samesite' => null,
             ];
             $result = $response->cookie('CakeTestCookie[Testing]');
             $this->assertEquals($expected, $result);
@@ -1607,6 +1608,7 @@ class ResponseTest extends TestCase
                     'domain' => '',
                     'secure' => false,
                     'httpOnly' => false,
+                    'samesite' => null,
                 ],
                 'CakeTestCookie[Testing2]' => [
                     'name' => 'CakeTestCookie[Testing2]',
@@ -1616,6 +1618,7 @@ class ResponseTest extends TestCase
                     'domain' => '',
                     'secure' => true,
                     'httpOnly' => false,
+                    'samesite' => null,
                 ],
             ];
 
@@ -1634,6 +1637,7 @@ class ResponseTest extends TestCase
                     'domain' => '',
                     'secure' => false,
                     'httpOnly' => false,
+                    'samesite' => null,
                 ],
                 'CakeTestCookie[Testing2]' => [
                     'name' => 'CakeTestCookie[Testing2]',
@@ -1643,6 +1647,7 @@ class ResponseTest extends TestCase
                     'domain' => '',
                     'secure' => true,
                     'httpOnly' => false,
+                    'samesite' => null,
                 ],
             ];
 
@@ -1669,7 +1674,9 @@ class ResponseTest extends TestCase
             'path' => '/',
             'domain' => '',
             'secure' => false,
-            'httpOnly' => false];
+            'httpOnly' => false,
+            'samesite' => null,
+        ];
         $result = $new->getCookie('testing');
         $this->assertEquals($expected, $result);
     }
@@ -1727,6 +1734,7 @@ class ResponseTest extends TestCase
             'domain' => '',
             'secure' => true,
             'httpOnly' => false,
+            'samesite' => null,
         ];
 
         // Match the date time formatting to Response::convertCookieToArray
@@ -1776,6 +1784,7 @@ class ResponseTest extends TestCase
             'secure' => true,
             'httpOnly' => true,
             'expire' => new \DateTimeImmutable('+14 days'),
+            'samesite' => null,
         ];
 
         $cookie = new Cookie(
@@ -1833,6 +1842,7 @@ class ResponseTest extends TestCase
                 'domain' => '',
                 'secure' => false,
                 'httpOnly' => false,
+                'samesite' => null,
             ],
             'test2' => [
                 'name' => 'test2',
@@ -1842,6 +1852,7 @@ class ResponseTest extends TestCase
                 'domain' => '',
                 'secure' => true,
                 'httpOnly' => false,
+                'samesite' => null,
             ],
         ];
         $this->assertEquals($expected, $new->getCookies());
@@ -1869,6 +1880,7 @@ class ResponseTest extends TestCase
                 'domain' => '',
                 'secure' => false,
                 'httpOnly' => true,
+                'samesite' => null,
             ],
         ];
         $this->assertEquals($expected, $new->getCookies());
@@ -2168,7 +2180,7 @@ class ResponseTest extends TestCase
         $this->assertEquals('bytes', $new->getHeaderLine('Accept-Ranges'));
         $this->assertEquals('binary', $new->getHeaderLine('Content-Transfer-Encoding'));
         $body = $new->getBody();
-        $this->assertInstanceOf('Zend\Diactoros\Stream', $body);
+        $this->assertInstanceOf('Laminas\Diactoros\Stream', $body);
 
         $expected = '/* this is the test asset css file */';
         $this->assertEquals($expected, trim($body->getContents()));

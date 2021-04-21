@@ -24,13 +24,12 @@ use NoRewindIterator;
  */
 class BufferedIteratorTest extends TestCase
 {
-
     /**
      * Tests that items are cached once iterated over them
      *
      * @return void
      */
-    public function testBuffer()
+    public function testBufferItems()
     {
         $items = new ArrayObject([
             'a' => 1,
@@ -67,5 +66,26 @@ class BufferedIteratorTest extends TestCase
         $this->assertCount(3, $iterator);
         $buffered = $iterator->toArray();
         $this->assertSame((array)$items, $buffered);
+    }
+
+    /**
+     * Tests that partial iteration can be reset.
+     *
+     * @return void
+     */
+    public function testBufferPartial()
+    {
+        $items = new ArrayObject([1, 2, 3]);
+        $iterator = new BufferedIterator($items);
+        foreach ($iterator as $key => $value) {
+            if ($key == 1) {
+                break;
+            }
+        }
+        $result = [];
+        foreach ($iterator as $value) {
+            $result[] = $value;
+        }
+        $this->assertEquals([1, 2, 3], $result);
     }
 }

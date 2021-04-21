@@ -36,7 +36,6 @@ class Article extends Entity
  */
 class TranslateBehaviorTest extends TestCase
 {
-
     /**
      * fixtures
      *
@@ -237,6 +236,7 @@ class TranslateBehaviorTest extends TestCase
                 ],
             ])
             ->enableHydration(false)
+            ->orderAsc('Articles.id')
             ->toArray();
 
         $expected = [

@@ -420,7 +420,7 @@ class Session
      * Returns given session variable, or all of them, if no parameters given.
      *
      * @param string|null $name The name of the session variable (or a path as sent to Hash.extract)
-     * @return string|array|null The value of the session variable, null if session not available,
+     * @return mixed|null The value of the session variable, null if session not available,
      *   session not started, or provided name not found in the session.
      */
     public function read($name = null)
@@ -604,15 +604,25 @@ class Session
 
         $this->start();
         $params = session_get_cookie_params();
-        setcookie(
-            session_name(),
-            '',
-            time() - 42000,
-            $params['path'],
-            $params['domain'],
-            $params['secure'],
-            $params['httponly']
-        );
+        if (PHP_VERSION_ID >= 70300) {
+            unset($params['lifetime']);
+            $params['expires'] = time() - 42000;
+            setcookie(
+                session_name(),
+                '',
+                $params
+            );
+        } else {
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
+        }
 
         if (session_id() !== '') {
             session_regenerate_id(true);

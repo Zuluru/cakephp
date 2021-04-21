@@ -27,7 +27,6 @@ use Cake\View\View;
  */
 class PaginatorHelperTest extends TestCase
 {
-
     /**
      * @var string
      */
@@ -2583,6 +2582,46 @@ class PaginatorHelperTest extends TestCase
     }
 
     /**
+     * test first() and last with url options
+     *
+     * @return void
+     */
+    public function testFirstAndLastUrlOptions()
+    {
+        $this->View->setRequest($this->View->getRequest()
+            ->withParam('paging.Article', [
+                'page' => 3,
+                'pageCount' => 5,
+                'direction' => 'DESC',
+                'sort' => 'Article.title',
+            ]));
+
+        $result = $this->Paginator->first('first', ['url' => ['?' => ['key' => 'value']]]);
+        $expected = [
+            'li' => ['class' => 'first'],
+            ['a' => [
+                'href' => '/index?key=value&amp;sort=Article.title&amp;direction=DESC',
+            ]],
+            'first',
+            '/a',
+            '/li',
+        ];
+        $this->assertHtml($expected, $result);
+
+        $result = $this->Paginator->last('last', ['url' => ['?' => ['key' => 'value']]]);
+        $expected = [
+            'li' => ['class' => 'last'],
+            ['a' => [
+                'href' => '/index?key=value&amp;page=5&amp;sort=Article.title&amp;direction=DESC',
+            ]],
+            'last',
+            '/a',
+            '/li',
+        ];
+        $this->assertHtml($expected, $result);
+    }
+
+    /**
      * test first() on the fence-post
      *
      * @return void
@@ -3232,5 +3271,59 @@ class PaginatorHelperTest extends TestCase
             '/form',
         ];
         $this->assertHtml($expected, $out);
+    }
+
+    /**
+     * Test using paging params set by SimplePaginator which doesn't do count query.
+     *
+     * @return void
+     */
+    public function testMethodsWhenThereIsNoPageCount()
+    {
+        $request = new ServerRequest([
+            'url' => '/',
+            'params' => [
+                'paging' => [
+                    'Article' => [
+                        'page' => 1,
+                        'current' => 9,
+                        'count' => null,
+                        'prevPage' => false,
+                        'nextPage' => true,
+                        'pageCount' => 0,
+                        'start' => 1,
+                        'end' => 9,
+                        'sort' => null,
+                        'direction' => null,
+                        'limit' => null,
+                    ],
+                ],
+            ],
+        ]);
+
+        $view = new View($request);
+        $paginator = new PaginatorHelper($view);
+
+        $result = $paginator->first();
+        $this->assertFalse($result);
+
+        $result = $paginator->last();
+        $this->assertFalse($result);
+
+        // Using below methods when SimplePaginator is used makes no practical sense.
+        // The asserts are just to ensure they return a reasonable value.
+
+        $result = $paginator->numbers();
+        $this->assertFalse($result);
+
+        $result = $paginator->hasNext();
+        $this->assertTrue($result);
+
+        $result = $paginator->counter();
+        // counter() sets `pageCount` to 1 if empty.
+        $this->assertEquals('1 of 1', $result);
+
+        $result = $paginator->total();
+        $this->assertSame(0, $result);
     }
 }

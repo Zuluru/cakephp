@@ -30,6 +30,7 @@ use Cake\View\Exception\MissingElementException;
 use Cake\View\Exception\MissingHelperException;
 use Cake\View\Exception\MissingLayoutException;
 use Cake\View\Exception\MissingTemplateException;
+use Exception;
 use InvalidArgumentException;
 use LogicException;
 use RuntimeException;
@@ -814,8 +815,20 @@ class View implements EventDispatcherInterface
         if ($result) {
             return $result;
         }
+
+        $bufferLevel = ob_get_level();
         ob_start();
-        $block();
+
+        try {
+            $block();
+        } catch (Exception $exception) {
+            while (ob_get_level() > $bufferLevel) {
+                ob_end_clean();
+            }
+
+            throw $exception;
+        }
+
         $result = ob_get_clean();
 
         Cache::write($options['key'], $result, $options['config']);
@@ -918,7 +931,7 @@ class View implements EventDispatcherInterface
 
         $title = $this->Blocks->get('title');
         if ($title === '') {
-            $title = Inflector::humanize($this->templatePath);
+            $title = Inflector::humanize(str_replace(DIRECTORY_SEPARATOR, '/', $this->templatePath));
             $this->Blocks->set('title', $title);
         }
 
@@ -1097,7 +1110,6 @@ class View implements EventDispatcherInterface
      * Check if a block exists
      *
      * @param string $name Name of the block
-     *
      * @return bool
      */
     public function exists($name)
@@ -1415,9 +1427,19 @@ class View implements EventDispatcherInterface
     protected function _evaluate($viewFile, $dataForView)
     {
         extract($dataForView);
+
+        $bufferLevel = ob_get_level();
         ob_start();
 
-        include func_get_arg(0);
+        try {
+            include func_get_arg(0);
+        } catch (Exception $exception) {
+            while (ob_get_level() > $bufferLevel) {
+                ob_end_clean();
+            }
+
+            throw $exception;
+        }
 
         return ob_get_clean();
     }

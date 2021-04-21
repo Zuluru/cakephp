@@ -57,7 +57,7 @@ class RequestHandlerComponent extends Component
     public $ext;
 
     /**
-     * The template to use when rendering the given content type.
+     * The template type to use when rendering the given content type.
      *
      * @var string|null
      */
@@ -287,7 +287,7 @@ class RequestHandlerComponent extends Component
         }
         /** @var \Cake\Controller\Controller $controller */
         $controller = $event->getSubject();
-        $response->body($controller->requestAction($url, [
+        $response = $response->withStringBody($controller->requestAction($url, [
             'return',
             'bare' => false,
             'environment' => [

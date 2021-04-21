@@ -31,7 +31,6 @@ use TestApp\Database\Type\BarType;
  */
 class QueryTest extends TestCase
 {
-
     public $fixtures = [
         'core.Articles',
         'core.Authors',
@@ -868,6 +867,7 @@ class QueryTest extends TestCase
 
     /**
      * Tests exception message for impossible condition when using an expression
+     *
      * @return void
      */
     public function testSelectWhereArrayTypeEmptyWithExpression()
@@ -2110,6 +2110,31 @@ class QueryTest extends TestCase
             ['id' => 3],
         ];
         $this->assertEquals($expected, $result);
+
+        $query = new Query($this->connection);
+        $query->select(['id'])
+            ->from('articles')
+            ->orderAsc(function (QueryExpression $exp, Query $query) {
+                return $exp->addCase(
+                    [$query->newExpr()->add(['author_id' => 1])],
+                    [1, $query->identifier('id')],
+                    ['integer', null]
+                );
+            })
+            ->orderAsc('id');
+        $sql = $query->sql();
+        $result = $query->execute()->fetchAll('assoc');
+        $expected = [
+            ['id' => 1],
+            ['id' => 3],
+            ['id' => 2],
+        ];
+        $this->assertEquals($expected, $result);
+        $this->assertQuotedQuery(
+            'SELECT <id> FROM <articles> ORDER BY CASE WHEN <author_id> = :c0 THEN :param1 ELSE <id> END ASC, <id> ASC',
+            $sql,
+            !$this->autoQuote
+        );
     }
 
     /**
@@ -2150,6 +2175,31 @@ class QueryTest extends TestCase
             ['id' => 1],
         ];
         $this->assertEquals($expected, $result);
+
+        $query = new Query($this->connection);
+        $query->select(['id'])
+            ->from('articles')
+            ->orderDesc(function (QueryExpression $exp, Query $query) {
+                return $exp->addCase(
+                    [$query->newExpr()->add(['author_id' => 1])],
+                    [1, $query->identifier('id')],
+                    ['integer', null]
+                );
+            })
+            ->orderDesc('id');
+        $sql = $query->sql();
+        $result = $query->execute()->fetchAll('assoc');
+        $expected = [
+            ['id' => 2],
+            ['id' => 3],
+            ['id' => 1],
+        ];
+        $this->assertEquals($expected, $result);
+        $this->assertQuotedQuery(
+            'SELECT <id> FROM <articles> ORDER BY CASE WHEN <author_id> = :c0 THEN :param1 ELSE <id> END DESC, <id> DESC',
+            $sql,
+            !$this->autoQuote
+        );
     }
 
     /**
@@ -2167,6 +2217,7 @@ class QueryTest extends TestCase
             ->from('articles')
             ->join(['table' => 'authors', 'alias' => 'a', 'conditions' => 'author_id = a.id'])
             ->group('author_id')
+            ->order(['total' => 'desc'])
             ->execute();
         $expected = [['total' => 2, 'author_id' => 1], ['total' => '1', 'author_id' => 3]];
         $this->assertEquals($expected, $result->fetchAll('assoc'));
@@ -2352,6 +2403,7 @@ class QueryTest extends TestCase
                 ->group('author_id')
                 ->having(['count(author_id) >' => 2], ['count(author_id)' => 'integer'])
                 ->orHaving(['count(author_id) <' => 2], ['count(author_id)' => 'integer'])
+                ->order(['total' => 'desc'])
                 ->execute();
             $expected = [['total' => 1, 'author_id' => 3]];
             $this->assertEquals($expected, $result->fetchAll('assoc'));
@@ -2364,6 +2416,7 @@ class QueryTest extends TestCase
                 ->group('author_id')
                 ->having(['count(author_id) >' => 2], ['count(author_id)' => 'integer'])
                 ->orHaving(['count(author_id) <=' => 2], ['count(author_id)' => 'integer'])
+                ->order(['total' => 'desc'])
                 ->execute();
             $expected = [['total' => 2, 'author_id' => 1], ['total' => 1, 'author_id' => 3]];
             $this->assertEquals($expected, $result->fetchAll('assoc'));
@@ -2378,6 +2431,7 @@ class QueryTest extends TestCase
                 ->orHaving(function ($e) {
                     return $e->add('count(author_id) = 1 + 1');
                 })
+                ->order(['total' => 'desc'])
                 ->execute();
             $expected = [['total' => 2, 'author_id' => 1]];
             $this->assertEquals($expected, $result->fetchAll('assoc'));
@@ -3019,7 +3073,6 @@ class QueryTest extends TestCase
      * warning about possible incompatibilities with aliases being removed
      * from the conditions.
      *
-     *
      * @return void
      */
     public function testDeleteRemovingAliasesCanBreakJoins()
@@ -3119,7 +3172,6 @@ class QueryTest extends TestCase
     /**
      * Test update with type checking
      * by passing an array as table arg
-     *
      *
      * @return void
      */
@@ -3603,7 +3655,6 @@ class QueryTest extends TestCase
 
     /**
      * Test that an exception is raised when mixing query + array types.
-     *
      */
     public function testInsertFailureMixingTypesArrayFirst()
     {
@@ -3618,7 +3669,6 @@ class QueryTest extends TestCase
 
     /**
      * Test that an exception is raised when mixing query + array types.
-     *
      */
     public function testInsertFailureMixingTypesQueryFirst()
     {
@@ -4376,12 +4426,8 @@ class QueryTest extends TestCase
 
         //Postgres requires the case statement to be cast to a integer
         if ($this->connection->getDriver() instanceof \Cake\Database\Driver\Postgres) {
-            $publishedCase = $query->func()
-                ->cast([$publishedCase, 'integer' => 'literal'])
-                ->setConjunction(' AS ');
-            $notPublishedCase = $query->func()
-                ->cast([$notPublishedCase, 'integer' => 'literal'])
-                ->setConjunction(' AS ');
+            $publishedCase = $query->func()->cast($publishedCase, 'integer');
+            $notPublishedCase = $query->func()->cast($notPublishedCase, 'integer');
         }
 
         $results = $query
@@ -4904,6 +4950,7 @@ class QueryTest extends TestCase
 
     /**
      * Test that calling fetchAssoc return an associated array.
+     *
      * @return void
      * @throws \Exception
      */
@@ -4933,6 +4980,7 @@ class QueryTest extends TestCase
 
     /**
      * Test that calling fetchAssoc return an empty associated array.
+     *
      * @return void
      * @throws \Exception
      */
@@ -4952,6 +5000,7 @@ class QueryTest extends TestCase
 
     /**
      * Test that calling fetch with with FETCH_TYPE_OBJ return stdClass object.
+     *
      * @return void
      * @throws \Exception
      */
@@ -4974,6 +5023,7 @@ class QueryTest extends TestCase
 
     /**
      * Test that fetchColumn() will return the correct value at $position.
+     *
      * @throws \Exception
      * @return void
      */
@@ -5012,6 +5062,7 @@ class QueryTest extends TestCase
 
     /**
      * Test that fetchColumn() will return false if $position is not set.
+     *
      * @throws \Exception
      * @return void
      */
@@ -5038,5 +5089,179 @@ class QueryTest extends TestCase
         $statement = $query->execute();
         $results = $statement->fetchColumn(3);
         $this->assertFalse($results);
+    }
+
+    /**
+     * Tests that query expressions can be used for ordering.
+     *
+     * @return void
+     */
+    public function testOrderBySubquery()
+    {
+        $this->autoQuote = true;
+        $this->connection->getDriver()->enableAutoQuoting($this->autoQuote);
+
+        $this->loadFixtures('Articles');
+        $connection = $this->connection;
+
+        $query = new Query($connection);
+
+        $stmt = $connection->update('articles', ['published' => 'N'], ['id' => 3]);
+        $stmt->closeCursor();
+
+        $subquery = new Query($connection);
+        $subquery
+            ->select(
+                $subquery->newExpr()->addCase(
+                    [$subquery->newExpr()->add(['a.published' => 'N'])],
+                    [1, 0],
+                    ['integer', 'integer']
+                )
+            )
+            ->from(['a' => 'articles'])
+            ->where([
+                'a.id = articles.id',
+            ]);
+
+        $query
+            ->select(['id'])
+            ->from('articles')
+            ->orderDesc($subquery)
+            ->orderAsc('id')
+            ->setSelectTypeMap(new TypeMap([
+                'id' => 'integer',
+            ]));
+
+        $this->assertQuotedQuery(
+            'SELECT <id> FROM <articles> ORDER BY \(' .
+                'SELECT \(CASE WHEN <a>\.<published> = \:c0 THEN \:param1 ELSE \:param2 END\) ' .
+                'FROM <articles> <a> ' .
+                'WHERE a\.id = articles\.id' .
+            '\) DESC, <id> ASC',
+            $query->sql(),
+            !$this->autoQuote
+        );
+
+        $this->assertSame(
+            [
+                [
+                    'id' => 3,
+                ],
+                [
+                    'id' => 1,
+                ],
+                [
+                    'id' => 2,
+                ],
+            ],
+            $query->execute()->fetchAll('assoc')
+        );
+    }
+
+    /**
+     * Test that reusing expressions will duplicate bindings and run successfully.
+     *
+     * This replicates what the SQL Server driver would do for <= SQL Server 2008
+     * when ordering on fields that are expressions.
+     *
+     * @return void
+     * @see \Cake\Database\Driver\Sqlserver::_pagingSubquery()
+     */
+    public function testReusingExpressions()
+    {
+        $this->loadFixtures('Articles');
+        $connection = $this->connection;
+
+        $query = new Query($connection);
+
+        $stmt = $connection->update('articles', ['published' => 'N'], ['id' => 3]);
+        $stmt->closeCursor();
+
+        $subqueryA = new Query($connection);
+        $subqueryA
+            ->select('count(*)')
+            ->from(['a' => 'articles'])
+            ->where([
+                'a.id = articles.id',
+                'a.published' => 'Y',
+            ]);
+
+        $subqueryB = new Query($connection);
+        $subqueryB
+            ->select('count(*)')
+            ->from(['b' => 'articles'])
+            ->where([
+                'b.id = articles.id',
+                'b.published' => 'N',
+            ]);
+
+        $query
+            ->select([
+                'id',
+                'computedA' => $subqueryA,
+                'computedB' => $subqueryB,
+            ])
+            ->from('articles')
+            ->orderDesc($subqueryB)
+            ->orderAsc('id')
+            ->setSelectTypeMap(new TypeMap([
+                'id' => 'integer',
+                'computedA' => 'integer',
+                'computedB' => 'integer',
+            ]));
+
+        $this->assertQuotedQuery(
+            'SELECT <id>, ' .
+                '\(SELECT count\(\*\) FROM <articles> <a> WHERE \(a\.id = articles\.id AND <a>\.<published> = :c0\)\) AS <computedA>, ' .
+                '\(SELECT count\(\*\) FROM <articles> <b> WHERE \(b\.id = articles\.id AND <b>\.<published> = :c1\)\) AS <computedB> ' .
+            'FROM <articles> ' .
+            'ORDER BY \(' .
+                'SELECT count\(\*\) FROM <articles> <b> WHERE \(b\.id = articles\.id AND <b>\.<published> = :c2\)' .
+            '\) DESC, <id> ASC',
+            $query->sql(),
+            !$this->autoQuote
+        );
+
+        $this->assertSame(
+            [
+                [
+                    'id' => 3,
+                    'computedA' => 0,
+                    'computedB' => 1,
+                ],
+                [
+                    'id' => 1,
+                    'computedA' => 1,
+                    'computedB' => 0,
+                ],
+                [
+                    'id' => 2,
+                    'computedA' => 1,
+                    'computedB' => 0,
+                ],
+            ],
+            $query->execute()->fetchAll('assoc')
+        );
+
+        $this->assertSame(
+            [
+                ':c0' => [
+                    'value' => 'Y',
+                    'type' => null,
+                    'placeholder' => 'c0',
+                ],
+                ':c1' => [
+                    'value' => 'N',
+                    'type' => null,
+                    'placeholder' => 'c1',
+                ],
+                ':c2' => [
+                    'value' => 'N',
+                    'type' => null,
+                    'placeholder' => 'c2',
+                ],
+            ],
+            $query->getValueBinder()->bindings()
+        );
     }
 }
